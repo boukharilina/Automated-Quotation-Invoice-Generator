@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #14306b;
-  --color-brand-700: #0f2556;
-  --color-brand-50: #eef2fb;
-  --color-accent: #e8590c;
+  --color-brand: #0a2a66;
+  --color-brand-700: #061b47;
+  --color-brand-50: #ecf1fc;
+  --color-accent: #d3202f;
   --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -15,7 +15,7 @@ body { @apply bg-slate-50 text-slate-800 antialiased; }
   .label { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500; }
   .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
   .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 bg-brand text-white hover:bg-brand-700; }
-  .btn-accent { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 bg-accent text-white hover:bg-orange-700; }
+  .btn-accent { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 bg-accent text-white hover:bg-[#a9141f]; }
   .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 border border-slate-300 bg-white text-slate-700 hover:bg-slate-100; }
   .btn-danger { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 border border-red-200 bg-white text-red-700 hover:bg-red-50; }
   .card { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }

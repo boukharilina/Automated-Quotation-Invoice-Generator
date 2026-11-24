@@ -18,7 +18,7 @@ export default async function SettingsPage() {
       <h2 className="mb-2 text-lg font-semibold text-brand">Société, TVA et conditions</h2>
       <CompanyForm s={s} />
       <h2 className="mb-2 mt-8 text-lg font-semibold text-brand">Catalogue de services</h2>
-      <ServicesEditor services={services} />
+      <ServicesEditor services={services} vatRate={Number(s.vat_rate)} />
       <h2 className="mb-2 mt-8 text-lg font-semibold text-brand">Utilisateurs et rôles</h2>
       <UsersEditor users={users} meId={me.id} />
     </>

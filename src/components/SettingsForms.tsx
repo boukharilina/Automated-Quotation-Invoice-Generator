@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "./client";
+import { SERVICE_CATALOG } from "@/lib/catalog";
+import { computeTotals, fmt, htFromTtc } from "@/lib/money";
 
 function useSave() {
   const router = useRouter(); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [busy, setBusy] = useState(false);
@@ -44,20 +46,46 @@ export function CompanyForm({ s }: { s: any }) {
   );
 }
 
-export function ServicesEditor({ services }: { services: any[] }) {
-  const { busy, msg, run } = useSave();
-  const row = (s: any) => (
-    <form key={s.id ?? "new"} className="grid gap-2 border-b border-slate-100 p-3 md:grid-cols-[1fr_1fr_130px_80px_auto] md:items-end"
-      onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const body = { name: f.get("name"), description: f.get("description"), unit_price: Number(f.get("unit_price")), active: f.get("active") === "on" };
-        run(() => s.id ? api("PUT", `/api/services/${s.id}`, body) : api("POST", "/api/services", body).then(() => (e.target as HTMLFormElement).reset())); }}>
-      <div><label className="label">Service</label><input name="name" required defaultValue={s.name} className="input" /></div>
-      <div><label className="label">Description</label><input name="description" defaultValue={s.description} className="input" /></div>
-      <div><label className="label">Prix HT (TND)</label><input name="unit_price" type="number" step="0.001" min="0" required defaultValue={s.unit_price ?? 0} className="input text-right" /></div>
+function ServiceRow({ s, vatRate, busy, run }: { s: any; vatRate: number; busy: boolean; run: (fn: () => Promise<any>, ok?: string) => void }) {
+  const isNew = !s.id;
+  const [name, setName] = useState<string>(s.name ?? "");
+  const [ttc, setTtc] = useState<string>(isNew ? "" : String(computeTotals([{ quantity: 1, unit_price: Number(s.unit_price) }], 0, 0, vatRate).total_ttc));
+  const ht = htFromTtc(Number(ttc) || 0, vatRate);
+  const known = SERVICE_CATALOG.some((c) => c.name === name);
+  function pick(v: string) {
+    setName(v);
+    const c = SERVICE_CATALOG.find((x) => x.name === v);
+    if (c && isNew) setTtc(String(c.ttc));
+  }
+  return (
+    <form className="grid gap-2 border-b border-slate-100 p-3 md:grid-cols-[1.4fr_130px_130px_80px_auto] md:items-end"
+      onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget);
+        const c = SERVICE_CATALOG.find((x) => x.name === name);
+        const body = { name, description: c?.description ?? s.description ?? "", unit_price: ht, active: f.get("active") === "on" };
+        run(() => s.id ? api("PUT", `/api/services/${s.id}`, body) : api("POST", "/api/services", body).then(() => { setName(""); setTtc(""); })); }}>
+      <div><label className="label">Service</label>
+        <select name="name" required value={name} onChange={(e) => pick(e.target.value)} className="input">
+          <option value="" disabled>Choisir un service…</option>
+          {!isNew && !known && <option value={name} disabled>{name} (ancien – à remplacer)</option>}
+          {SERVICE_CATALOG.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+        </select></div>
+      <div><label className="label">Prix TTC (TND)</label><input type="number" step="0.001" min="0" required value={ttc} onChange={(e) => setTtc(e.target.value)} className="input text-right" /></div>
+      <div><label className="label">Prix HT (calculé)</label><div className="input bg-slate-50 text-right tabular-nums text-slate-600">{fmt(ht, false)}</div></div>
       <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="active" defaultChecked={s.active ?? true} /> Actif</label>
-      <button className="btn-primary" disabled={busy}>{s.id ? "Enregistrer" : "Ajouter"}</button>
+      <button className="btn-primary" disabled={busy || !name}>{isNew ? "Ajouter" : "Enregistrer"}</button>
     </form>
   );
-  return (<div className="card"><Msg m={msg} />{services.map(row)}<div className="bg-slate-50">{row({})}</div></div>);
+}
+
+export function ServicesEditor({ services, vatRate }: { services: any[]; vatRate: number }) {
+  const { busy, msg, run } = useSave();
+  return (
+    <div className="card"><Msg m={msg} />
+      {services.map((s) => <ServiceRow key={`${s.id}-${s.unit_price}`} s={s} vatRate={vatRate} busy={busy} run={run} />)}
+      <div className="bg-slate-50"><ServiceRow s={{}} vatRate={vatRate} busy={busy} run={run} /></div>
+      <p className="p-3 text-xs text-slate-500">Les prix sont saisis en TTC ; le prix HT est calculé automatiquement (TTC ÷ {(1 + vatRate / 100).toFixed(2)}, soit TVA {vatRate} % déduite).</p>
+    </div>
+  );
 }
 
 export function UsersEditor({ users, meId }: { users: any[]; meId: number }) {

@@ -5,7 +5,7 @@ import { Plus, Trash2, UserPlus, Search } from "lucide-react";
 import { api } from "./client";
 import { computeTotals, fmt, lineTotal } from "@/lib/money";
 
-interface Item { service_id: number | null; description: string; quantity: number | string; unit_price: number | string }
+interface Item { free?: boolean; service_id: number | null; description: string; quantity: number | string; unit_price: number | string }
 interface Cust { id: number; code: string; full_name: string; phone?: string; email?: string; student_name?: string }
 export interface DocInit {
   id?: number; customer?: Cust | null; issue_date: string; second_date: string; payment_method?: string;
@@ -20,7 +20,7 @@ export default function DocumentForm({ kind, services, vatRate, canDiscount, ini
   const router = useRouter();
   const isQ = kind === "quote";
   const [customer, setCustomer] = useState<Cust | null>(init.customer ?? null);
-  const [items, setItems] = useState<Item[]>(init.items);
+  const [items, setItems] = useState<Item[]>(init.items.map((i) => ({ ...i, free: !i.service_id && !!i.description })));
   const [issue, setIssue] = useState(init.issue_date);
   const [second, setSecond] = useState(init.second_date);
   const [method, setMethod] = useState(init.payment_method ?? "bank_transfer");
@@ -34,9 +34,9 @@ export default function DocumentForm({ kind, services, vatRate, canDiscount, ini
     items.map((i) => ({ quantity: Number(i.quantity) || 0, unit_price: Number(i.unit_price) || 0 })), Number(discount) || 0, Number(extra) || 0, vatRate), [items, discount, extra, vatRate]);
 
   const setItem = (i: number, patch: Partial<Item>) => setItems((a) => a.map((x, k) => (k === i ? { ...x, ...patch } : x)));
-  const addService = (id: number) => {
+  const pickService = (i: number, id: number) => {
     const s = services.find((x) => x.id === id); if (!s) return;
-    setItems((a) => [...a.filter((x) => x.description || Number(x.unit_price)), { service_id: s.id, description: s.name, quantity: 1, unit_price: s.unit_price }]);
+    setItem(i, { service_id: s.id, description: s.name, unit_price: s.unit_price });
   };
 
   async function save(status: string) {
@@ -66,15 +66,18 @@ export default function DocumentForm({ kind, services, vatRate, canDiscount, ini
         <section className="card p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold text-brand">2. Services</h2>
-            <select className="input !w-auto" value="" onChange={(e) => addService(Number(e.target.value))} aria-label="Ajouter un service du catalogue">
-              <option value="">+ Ajouter depuis le catalogue…</option>
-              {services.map((s) => <option key={s.id} value={s.id}>{s.name} — {fmt(s.unit_price)}</option>)}
-            </select>
           </div>
           <div className="space-y-3">
             {items.map((it, i) => (
               <div key={i} className="grid gap-2 rounded-lg border border-slate-200 p-3 md:grid-cols-[1fr_90px_130px_120px_36px] md:items-end">
-                <div><label className="label">Désignation</label><input className="input" value={it.description} onChange={(e) => setItem(i, { description: e.target.value })} placeholder="Description du service" /></div>
+                <div><label className="label">Désignation</label>
+                  {it.free
+                    ? <input className="input" value={it.description} onChange={(e) => setItem(i, { description: e.target.value })} placeholder="Description libre" />
+                    : <select className="input" value={it.service_id ?? ""} onChange={(e) => pickService(i, Number(e.target.value))} aria-label="Service">
+                        <option value="" disabled>Choisir un service…</option>
+                        {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>}
+                </div>
                 <div><label className="label">Qté</label><input className="input text-right" type="number" min="0.001" step="any" value={it.quantity} onChange={(e) => setItem(i, { quantity: e.target.value })} /></div>
                 <div><label className="label">Prix unit. HT</label><input className="input text-right" type="number" min="0" step="0.001" value={it.unit_price} onChange={(e) => setItem(i, { unit_price: e.target.value })} /></div>
                 <div><label className="label">Total HT</label><div className="px-1 py-2 text-right text-sm font-semibold tabular-nums">{fmt(lineTotal({ quantity: Number(it.quantity) || 0, unit_price: Number(it.unit_price) || 0 }))}</div></div>
@@ -82,7 +85,10 @@ export default function DocumentForm({ kind, services, vatRate, canDiscount, ini
               </div>
             ))}
           </div>
-          <button type="button" className="btn-ghost mt-3" onClick={() => setItems((a) => [...a, { service_id: null, description: "", quantity: 1, unit_price: 0 }])}><Plus size={16} /> Ligne libre</button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="btn-ghost" onClick={() => setItems((a) => [...a, { service_id: null, description: "", quantity: 1, unit_price: 0 }])}><Plus size={16} /> Ajouter un service</button>
+            <button type="button" className="btn-ghost" onClick={() => setItems((a) => [...a, { free: true, service_id: null, description: "", quantity: 1, unit_price: 0 }])}><Plus size={16} /> Ligne libre</button>
+          </div>
         </section>
 
         <section className="card grid gap-4 p-5 md:grid-cols-2">

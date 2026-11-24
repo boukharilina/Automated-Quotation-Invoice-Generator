@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { SERVICE_NAMES } from "./catalog";
 
 export const serviceSchema = z.object({
-  name: z.string().trim().min(2, "Nom requis").max(200),
+  name: z.enum(SERVICE_NAMES, { message: "Choisissez un service dans la liste." }),
   description: z.string().trim().max(500).default(""),
   unit_price: z.coerce.number().finite().min(0, "Prix positif requis"),
   active: z.boolean().default(true),

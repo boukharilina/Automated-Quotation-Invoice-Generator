@@ -3,7 +3,7 @@ import type { Settings } from "./settings";
 import { amountInWords, fmt } from "./money";
 import { fmtDate, INVOICE_STATUS, METHODS, QUOTE_STATUS } from "./util";
 
-const NAVY = "#14306B", ACCENT = "#E8590C", INK = "#1F2937", MUTED = "#6B7280", LINE = "#D9DEE7", SOFT = "#F3F5FA";
+const NAVY = "#0A2A66", ACCENT = "#D3202F", INK = "#1F2937", MUTED = "#6B7280", LINE = "#D9DEE7", SOFT = "#EEF2FB";
 const M = 40, W = 595.28, H = 841.89, CW = W - 2 * M;
 
 type Doc = InstanceType<typeof PDFDocument>;
@@ -20,7 +20,7 @@ function drawLogo(doc: Doc, s: Settings, x: number, y: number) {
   if (s.logo.startsWith("data:image/")) {
     try {
       const buf = Buffer.from(s.logo.split(",")[1], "base64");
-      doc.image(buf, x, y, { fit: [150, 56] });
+      doc.image(buf, x, y, { fit: [170, 62] });
       return;
     } catch { /* fall through to wordmark */ }
   }
@@ -30,13 +30,14 @@ function drawLogo(doc: Doc, s: Settings, x: number, y: number) {
 }
 
 function header(doc: Doc, s: Settings, title: string, number: string, meta: [string, string][]) {
-  drawLogo(doc, s, M, M - 4);
+  doc.rect(0, 0, W, 10).fill(NAVY); doc.rect(W * 0.62, 0, W * 0.38, 10).fill(ACCENT);
+  drawLogo(doc, s, M, M - 2);
   doc.fillColor(NAVY).font("Helvetica-Bold").fontSize(26).text(title, M, M - 2, { width: CW, align: "right" });
   doc.fillColor(ACCENT).fontSize(12).text(number, M, M + 30, { width: CW, align: "right" });
   doc.font("Helvetica").fontSize(9).fillColor(MUTED);
   let y = M + 48;
   for (const [k, v] of meta) { doc.text(`${k} : `, M, y, { width: CW - 90, align: "right", continued: false }); doc.fillColor(INK).font("Helvetica-Bold").text(v, M, y, { width: CW, align: "right" }); doc.font("Helvetica").fillColor(MUTED); y += 13; }
-  doc.moveTo(M, 128).lineTo(W - M, 128).lineWidth(1.2).strokeColor(NAVY).stroke();
+  doc.rect(M, 127, CW * 0.7, 2.5).fill(NAVY); doc.rect(M + CW * 0.7, 127, CW * 0.3, 2.5).fill(ACCENT);
   return 142;
 }
 
