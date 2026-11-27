@@ -116,4 +116,15 @@ CREATE INDEX IF NOT EXISTS payments_invoice ON payments(invoice_id);
 -- Timbre fiscal : les documents antérieurs restent à 0.
 ALTER TABLE quotes ADD COLUMN IF NOT EXISTS stamp_duty NUMERIC(14,3) NOT NULL DEFAULT 0;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS stamp_duty NUMERIC(14,3) NOT NULL DEFAULT 0;
+-- Achats importés (TVA déductible).
+CREATE TABLE IF NOT EXISTS vat_deductible (
+  id SERIAL PRIMARY KEY,
+  invoice_date DATE NOT NULL,
+  supplier TEXT NOT NULL DEFAULT '',
+  reference TEXT NOT NULL DEFAULT '',
+  amount_ht NUMERIC(14,3) NOT NULL DEFAULT 0,
+  vat_amount NUMERIC(14,3) NOT NULL,
+  created_by INT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
