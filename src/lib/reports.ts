@@ -111,3 +111,21 @@ export async function searchInvoices(q: string, status: string) {
   const rows = await filteredInvoices({ status: status || undefined });
   return q ? rows.filter((r) => (r.number + r.customer_name).toLowerCase().includes(q.toLowerCase())) : rows;
 }
+
+export interface PaymentSearch { q?: string; method?: string; from?: string; to?: string }
+
+/** Historique des paiements filtré : texte (reçu, client, facture, référence), mode et période d'encaissement. */
+export async function searchPayments({ q = "", method = "", from = "", to = "" }: PaymentSearch) {
+  const db = await getDb();
+  const w: string[] = []; const p: any[] = [];
+  const add = (sql: string, v: string) => { p.push(v); w.push(sql.replaceAll("?", `$${p.length}`)); };
+  const date = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+  if (q.trim()) add("(p.receipt_number ILIKE ? OR c.full_name ILIKE ? OR i.number ILIKE ? OR p.reference ILIKE ?)", `%${q.trim()}%`);
+  if (method) add("p.method = ?", method);
+  if (date.test(from)) add("p.paid_on >= ?", from);
+  if (date.test(to)) add("p.paid_on <= ?", to);
+  return (await db.query<any>(
+    `SELECT p.*, i.number AS invoice_number, c.full_name FROM payments p
+     JOIN invoices i ON i.id=p.invoice_id JOIN customers c ON c.id=p.customer_id
+     ${w.length ? "WHERE " + w.join(" AND ") : ""} ORDER BY p.paid_on DESC, p.id DESC`, p)).rows;
+}
