@@ -42,7 +42,7 @@ function header(doc: Doc, s: Settings, title: string, number: string, meta: [str
 }
 
 function partyBoxes(doc: Doc, s: Settings, y: number, rightTitle: string, c: { name: string; lines: string[] }) {
-  const bw = (CW - 16) / 2, bh = 92;
+  const bw = (CW - 16) / 2, bh = 118;
   const box = (x: number, title: string, name: string, lines: string[]) => {
     doc.roundedRect(x, y, bw, bh, 4).fillColor(SOFT).fill();
     doc.fillColor(ACCENT).font("Helvetica-Bold").fontSize(8).text(title.toUpperCase(), x + 10, y + 8, { width: bw - 20, characterSpacing: 0.8 });
@@ -55,8 +55,8 @@ function partyBoxes(doc: Doc, s: Settings, y: number, rightTitle: string, c: { n
 }
 
 function customerLines(d: any) {
-  return [d.customer_student && d.customer_student !== d.customer_name ? `Étudiant(e) : ${d.customer_student}` : "", d.customer_address,
-    d.customer_phone ? `Tél : ${d.customer_phone}` : "", d.customer_email, d.customer_cin ? `CIN / Passeport : ${d.customer_cin}` : ""];
+  return [d.customer_cin ? `CIN / Passeport : ${d.customer_cin}` : "", d.customer_student && d.customer_student !== d.customer_name ? `Étudiant(e) : ${d.customer_student}` : "", d.customer_address,
+    d.customer_phone ? `Tél : ${d.customer_phone}` : "", d.customer_email];
 }
 
 function newPage(doc: Doc) { doc.addPage(); return M; }
@@ -90,6 +90,7 @@ function totalsBlock(doc: Doc, y: number, d: any, extra: [string, string, boolea
   if (Number(d.discount) > 0) rows.push(["Remise", "- " + fmt(d.discount)]);
   if (Number(d.extra_charges) > 0) rows.push(["Frais additionnels", fmt(d.extra_charges)]);
   rows.push(["Total HT", fmt(d.total_ht)], [`TVA ${Number(d.vat_rate)} %`, fmt(d.vat_amount)]);
+  if (Number(d.stamp_duty) > 0) rows.push(["Timbre fiscal", fmt(d.stamp_duty)]);
   const x = M + CW - 240;
   if (y + rows.length * 18 + 40 + extra.length * 18 > 740) y = newPage(doc);
   for (const [k, v] of rows) {

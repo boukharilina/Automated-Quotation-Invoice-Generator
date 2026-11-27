@@ -14,6 +14,10 @@ describe("TTC -> HT", () => {
 });
 
 describe("totals", () => {
+  it("adds the fiscal stamp after VAT", () => {
+    const t = computeTotals([{ quantity: 1, unit_price: 2941.176 }], 0, 0, 19, 1);
+    expect(t.vat_amount).toBe(558.824); expect(t.stamp_duty).toBe(1); expect(t.total_ttc).toBe(3501);
+  });
   it("default service: 3500 HT -> 665 TVA -> 4165 TTC", () => {
     const t = computeTotals([{ quantity: 1, unit_price: 3500 }], 0, 0, 19);
     expect(t.total_ht).toBe(3500); expect(t.vat_amount).toBe(665); expect(t.total_ttc).toBe(4165);

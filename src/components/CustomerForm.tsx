@@ -19,7 +19,7 @@ export default function CustomerForm({ init, id }: { init?: any; id?: number }) 
       <div><label className="label">Nom complet *</label><input name="full_name" required defaultValue={f("full_name")} className="input" /></div>
       <div><label className="label">Téléphone</label><input name="phone" defaultValue={f("phone")} className="input" /></div>
       <div><label className="label">E-mail</label><input name="email" type="email" defaultValue={f("email")} className="input" /></div>
-      <div><label className="label">CIN / Passeport</label><input name="cin_passport" defaultValue={f("cin_passport")} className="input" /></div>
+      <div><label className="label">CIN / Passeport *</label><input name="cin_passport" required defaultValue={f("cin_passport")} className="input" /></div>
       <div><label className="label">Nom de l&apos;étudiant (si différent)</label><input name="student_name" defaultValue={f("student_name")} className="input" /></div>
       <div><label className="label">Adresse</label><input name="address" defaultValue={f("address")} className="input" /></div>
       {err && <p role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700 md:col-span-2">{err}</p>}

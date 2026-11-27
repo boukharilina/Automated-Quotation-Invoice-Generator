@@ -5,6 +5,6 @@ export const customerSchema = z.object({
   phone: z.string().trim().max(40).default(""),
   email: z.union([z.literal(""), z.string().trim().email("E-mail invalide")]).default(""),
   address: z.string().trim().max(500).default(""),
-  cin_passport: z.string().trim().max(50).default(""),
+  cin_passport: z.string({ message: "CIN / Passeport obligatoire" }).trim().min(1, "CIN / Passeport obligatoire").max(50),
   student_name: z.string().trim().max(200).default(""),
 });

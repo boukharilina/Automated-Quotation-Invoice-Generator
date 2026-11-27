@@ -1,19 +1,21 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Download, FileSpreadsheet, Plus } from "lucide-react";
 import { requirePage } from "@/lib/auth";
 import { fmt } from "@/lib/money";
 import { fmtDate, INVOICE_STATUS } from "@/lib/util";
-import { filteredInvoices } from "@/lib/reports";
+import { searchInvoices } from "@/lib/reports";
 import { A, Badge, PageHeader, Right, Table } from "@/components/ui";
 
 export default async function Invoices({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
   await requirePage("invoices");
   const { q = "", status = "" } = await searchParams;
-  let rows = await filteredInvoices({ status: status || undefined });
-  if (q) rows = rows.filter((r) => (r.number + r.customer_name).toLowerCase().includes(q.toLowerCase()));
+  const rows = await searchInvoices(q, status);
+  const qs = new URLSearchParams({ q, status }).toString();
   return (
     <>
       <PageHeader title="Factures" subtitle={`${rows.length} résultat(s)`}>
+        <a href={`/api/invoices/export?format=xlsx&${qs}`} className="btn-ghost"><FileSpreadsheet size={16} /> Excel</a>
+        <a href={`/api/invoices/export?format=pdf&${qs}`} className="btn-ghost"><Download size={16} /> PDF</a>
         <Link href="/invoices/new" className="btn-accent"><Plus size={16} /> Nouvelle facture</Link>
       </PageHeader>
       <form className="mb-4 flex flex-wrap gap-2">

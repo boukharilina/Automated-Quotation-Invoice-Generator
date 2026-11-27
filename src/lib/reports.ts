@@ -89,3 +89,25 @@ export async function dashboard(f: Filters) {
   const recentInvoices = (await db.query<any>(`SELECT i.id,i.number,i.status,i.issue_date,i.total_ttc,i.amount_paid,c.full_name AS customer_name FROM invoices i JOIN customers c ON c.id=i.customer_id ORDER BY i.id DESC LIMIT 5`)).rows;
   return { inv, quotes: quotes.n, months, recentQuotes, recentInvoices };
 }
+
+/** TVA collectée : factures émises (ni brouillon ni annulées), rattachées au mois de leur date de facture. */
+export async function vatDeclaration() {
+  const db = await getDb();
+  return (await db.query<any>(
+    `SELECT i.id, i.number, i.issue_date, i.total_ht, i.vat_rate, i.vat_amount, i.stamp_duty, i.total_ttc, c.full_name AS customer_name, c.cin_passport
+     FROM invoices i JOIN customers c ON c.id=i.customer_id
+     WHERE i.status NOT IN ('draft','cancelled') ORDER BY i.issue_date, i.number`)).rows;
+}
+
+/** Recherche des écrans « Devis » et « Factures » (n° ou client, statut), partagée avec leurs exports. */
+export async function searchQuotes(q: string, status: string) {
+  const db = await getDb(); await refreshStatuses(db);
+  return (await db.query<any>(
+    `SELECT d.*, c.full_name AS customer_name FROM quotes d JOIN customers c ON c.id=d.customer_id
+     WHERE ($1='' OR d.number ILIKE $2 OR c.full_name ILIKE $2) AND ($3='' OR d.status=$3) ORDER BY d.id DESC`, [q, `%${q}%`, status])).rows;
+}
+
+export async function searchInvoices(q: string, status: string) {
+  const rows = await filteredInvoices({ status: status || undefined });
+  return q ? rows.filter((r) => (r.number + r.customer_name).toLowerCase().includes(q.toLowerCase())) : rows;
+}

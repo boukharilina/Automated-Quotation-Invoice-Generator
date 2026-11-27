@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, UserPlus, Search } from "lucide-react";
 import { api } from "./client";
-import { computeTotals, fmt, lineTotal } from "@/lib/money";
+import { computeTotals, fmt, lineTotal, STAMP_DUTY } from "@/lib/money";
 
 interface Item { free?: boolean; service_id: number | null; description: string; quantity: number | string; unit_price: number | string }
 interface Cust { id: number; code: string; full_name: string; phone?: string; email?: string; student_name?: string }
@@ -31,7 +31,7 @@ export default function DocumentForm({ kind, services, vatRate, canDiscount, ini
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
 
   const totals = useMemo(() => computeTotals(
-    items.map((i) => ({ quantity: Number(i.quantity) || 0, unit_price: Number(i.unit_price) || 0 })), Number(discount) || 0, Number(extra) || 0, vatRate), [items, discount, extra, vatRate]);
+    items.map((i) => ({ quantity: Number(i.quantity) || 0, unit_price: Number(i.unit_price) || 0 })), Number(discount) || 0, Number(extra) || 0, vatRate, STAMP_DUTY), [items, discount, extra, vatRate]);
 
   const setItem = (i: number, patch: Partial<Item>) => setItems((a) => a.map((x, k) => (k === i ? { ...x, ...patch } : x)));
   const pickService = (i: number, id: number) => {
@@ -121,6 +121,7 @@ export default function DocumentForm({ kind, services, vatRate, canDiscount, ini
             {totals.extra_charges > 0 && <Row k="Frais additionnels" v={fmt(totals.extra_charges)} />}
             <Row k="Total HT" v={fmt(totals.total_ht)} />
             <Row k={`TVA ${vatRate} %`} v={fmt(totals.vat_amount)} />
+            <Row k="Timbre fiscal" v={fmt(totals.stamp_duty)} />
             <div className="flex justify-between rounded-lg bg-brand px-3 py-2.5 text-base font-bold text-white"><dt>Total TTC</dt><dd>{fmt(totals.total_ttc)}</dd></div>
           </dl>
           {err && <p role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{err}</p>}
@@ -162,6 +163,7 @@ function CustomerPicker({ value, onChange }: { value: Cust | null; onChange: (c:
   if (creating) return (
     <form onSubmit={create} className="grid gap-3 md:grid-cols-2">
       <div><label className="label">Nom complet *</label><input name="full_name" required className="input" /></div>
+      <div><label className="label">CIN / Passeport *</label><input name="cin_passport" required className="input" /></div>
       <div><label className="label">Téléphone</label><input name="phone" className="input" /></div>
       <div><label className="label">E-mail</label><input name="email" type="email" className="input" /></div>
       <div><label className="label">Nom de l&apos;étudiant (si différent)</label><input name="student_name" className="input" /></div>

@@ -2,10 +2,13 @@
 export const toM = (tnd: number | string): number => Math.round(Number(tnd) * 1000);
 export const fromM = (m: number): number => m / 1000;
 
+/** Timbre fiscal (TND) ajouté à chaque devis et facture, hors TVA. */
+export const STAMP_DUTY = 1;
+
 export interface LineInput { quantity: number; unit_price: number }
 export interface Totals {
   subtotal_ht: number; discount: number; extra_charges: number;
-  total_ht: number; vat_rate: number; vat_amount: number; total_ttc: number;
+  total_ht: number; vat_rate: number; vat_amount: number; stamp_duty: number; total_ttc: number;
 }
 
 /** Prix HT (TND, 3 décimales) à partir d'un prix TTC : TTC / (1 + TVA). 3500 @19 % -> 2941.176 */
@@ -14,15 +17,15 @@ export const htFromTtc = (ttc: number | string, vatRate: number): number => from
 /** Line total HT in TND. */
 export const lineTotal = (l: LineInput) => fromM(Math.round(l.quantity * toM(l.unit_price)));
 
-export function computeTotals(lines: LineInput[], discount: number, extra: number, vatRate: number): Totals {
+export function computeTotals(lines: LineInput[], discount: number, extra: number, vatRate: number, stamp = 0): Totals {
   const sub = lines.reduce((s, l) => s + Math.round(l.quantity * toM(l.unit_price)), 0);
-  const d = toM(discount), e = toM(extra);
+  const d = toM(discount), e = toM(extra), st = toM(stamp);
   const net = Math.max(0, sub - d + e);
   // TVA arrondie au millime supérieur : un prix TTC converti en HT (ex. 3500 -> 2 941,176) redonne exactement le TTC d'origine.
   const vat = Math.ceil((net * vatRate) / 100 - 1e-9);
   return {
     subtotal_ht: fromM(sub), discount: fromM(d), extra_charges: fromM(e),
-    total_ht: fromM(net), vat_rate: vatRate, vat_amount: fromM(vat), total_ttc: fromM(net + vat),
+    total_ht: fromM(net), vat_rate: vatRate, vat_amount: fromM(vat), stamp_duty: fromM(st), total_ttc: fromM(net + vat + st),
   };
 }
 

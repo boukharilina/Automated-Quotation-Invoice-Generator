@@ -6,6 +6,7 @@ export function DocBody({ d, second }: { d: any; second: { label: string; value:
     <div className="space-y-4">
       <div className="card grid gap-4 p-5 text-sm md:grid-cols-3">
         <div><div className="label">Client</div><div className="font-semibold">{d.customer_name}</div><div className="text-slate-500">{d.customer_code}</div>
+          <div className="text-slate-500">CIN / Passeport : {d.customer_cin || "—"}</div>
           {d.customer_student && d.customer_student !== d.customer_name && <div className="text-slate-500">Étudiant : {d.customer_student}</div>}
           <div className="text-slate-500">{[d.customer_phone, d.customer_email].filter(Boolean).join(" · ")}</div></div>
         <div><div className="label">Date d&apos;émission</div>{fmtDate(d.issue_date)}</div>
@@ -23,6 +24,7 @@ export function DocBody({ d, second }: { d: any; second: { label: string; value:
           {d.discount > 0 && <Line k="Remise" v={"- " + fmt(d.discount)} />}
           {d.extra_charges > 0 && <Line k="Frais additionnels" v={fmt(d.extra_charges)} />}
           <Line k="Total HT" v={fmt(d.total_ht)} /><Line k={`TVA ${d.vat_rate} %`} v={fmt(d.vat_amount)} />
+          {d.stamp_duty > 0 && <Line k="Timbre fiscal" v={fmt(d.stamp_duty)} />}
           <div className="flex justify-between border-t pt-2 text-base font-bold text-brand"><dt>Total TTC</dt><dd>{fmt(d.total_ttc)}</dd></div>
           {d.amount_paid !== undefined && d.amount_paid > 0 && <><Line k="Déjà réglé" v={fmt(d.amount_paid)} /><div className="flex justify-between font-bold text-accent"><dt>Reste à payer</dt><dd>{fmt(d.total_ttc - d.amount_paid)}</dd></div></>}
         </dl>

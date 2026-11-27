@@ -28,12 +28,13 @@ export const GET = route("export", async (req) => {
     { header: "N° facture", key: "number", width: 16 }, { header: "Date", key: "date", width: 12 }, { header: "Échéance", key: "due", width: 12 },
     { header: "Client", key: "cust", width: 28 }, { header: "Services", key: "svc", width: 40 }, { header: "Statut", key: "status", width: 20 },
     { header: "Total HT", key: "ht", width: 14, style: { numFmt: "#,##0.000" } }, { header: "TVA", key: "vat", width: 12, style: { numFmt: "#,##0.000" } },
+    { header: "Timbre fiscal", key: "stamp", width: 14, style: { numFmt: "#,##0.000" } },
     { header: "Total TTC", key: "ttc", width: 14, style: { numFmt: "#,##0.000" } }, { header: "Payé", key: "paid", width: 14, style: { numFmt: "#,##0.000" } }, { header: "Reste à payer", key: "rest", width: 14, style: { numFmt: "#,##0.000" } },
   ];
-  invoices.forEach((i) => w1.addRow({ number: i.number, date: fmtDate(i.issue_date), due: fmtDate(i.due_date), cust: i.customer_name, svc: i.services, status: INVOICE_STATUS[i.status], ht: i.total_ht, vat: i.vat_amount, ttc: i.total_ttc, paid: i.amount_paid, rest: Math.round((i.total_ttc - i.amount_paid) * 1000) / 1000 }));
+  invoices.forEach((i) => w1.addRow({ number: i.number, date: fmtDate(i.issue_date), due: fmtDate(i.due_date), cust: i.customer_name, svc: i.services, status: INVOICE_STATUS[i.status], ht: i.total_ht, vat: i.vat_amount, stamp: i.stamp_duty, ttc: i.total_ttc, paid: i.amount_paid, rest: Math.round((i.total_ttc - i.amount_paid) * 1000) / 1000 }));
   if (invoices.length) {
     const n = invoices.length + 1;
-    const t = w1.addRow({ number: "TOTAL", ht: { formula: `SUM(G2:G${n})` }, vat: { formula: `SUM(H2:H${n})` }, ttc: { formula: `SUM(I2:I${n})` }, paid: { formula: `SUM(J2:J${n})` }, rest: { formula: `SUM(K2:K${n})` } });
+    const t = w1.addRow({ number: "TOTAL", ht: { formula: `SUM(G2:G${n})` }, vat: { formula: `SUM(H2:H${n})` }, stamp: { formula: `SUM(I2:I${n})` }, ttc: { formula: `SUM(J2:J${n})` }, paid: { formula: `SUM(K2:K${n})` }, rest: { formula: `SUM(L2:L${n})` } });
     t.font = { bold: true };
   }
   style(w1);

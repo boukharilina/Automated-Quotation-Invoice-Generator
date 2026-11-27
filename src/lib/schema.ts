@@ -113,4 +113,7 @@ CREATE INDEX IF NOT EXISTS audit_entity ON audit_log(entity, entity_id);
 CREATE INDEX IF NOT EXISTS invoices_customer ON invoices(customer_id);
 CREATE INDEX IF NOT EXISTS quotes_customer ON quotes(customer_id);
 CREATE INDEX IF NOT EXISTS payments_invoice ON payments(invoice_id);
+-- Timbre fiscal : les documents antérieurs restent à 0.
+ALTER TABLE quotes ADD COLUMN IF NOT EXISTS stamp_duty NUMERIC(14,3) NOT NULL DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS stamp_duty NUMERIC(14,3) NOT NULL DEFAULT 0;
 `;

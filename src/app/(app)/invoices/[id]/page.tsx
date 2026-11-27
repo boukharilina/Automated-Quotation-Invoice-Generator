@@ -8,6 +8,7 @@ import { fmtDate, METHODS, today } from "@/lib/util";
 import { A, Badge, PageHeader, Right, Table } from "@/components/ui";
 import { InvoiceActions, PaymentForm } from "@/components/Actions";
 import { DocBody } from "@/components/DocBody";
+import { EmailButton, PrintPdfButton } from "@/components/DocTools";
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requirePage("invoices");
@@ -20,6 +21,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       <PageHeader title={d.number} subtitle={<>Client : <A href={`/customers/${d.customer_id}`}>{d.customer_name}</A> · <Badge kind="invoice" status={d.status} />{d.quote_id && <> · issue du devis <A href={`/quotes/${d.quote_id}`}>{d.quote_number}</A></>}</>}>
         {d.status === "draft" && <Link href={`/invoices/${d.id}/edit`} className="btn-ghost"><Pencil size={16} /> Modifier</Link>}
         <a href={`/api/invoices/${d.id}/pdf`} target="_blank" className="btn-ghost"><Download size={16} /> PDF</a>
+        <PrintPdfButton url={`/api/invoices/${d.id}/pdf`} />
+        {!["draft", "cancelled"].includes(d.status) && <EmailButton url={`/api/invoices/${d.id}/email`} email={d.customer_email} />}
         <InvoiceActions id={d.id} status={d.status} paid={d.amount_paid} />
       </PageHeader>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">

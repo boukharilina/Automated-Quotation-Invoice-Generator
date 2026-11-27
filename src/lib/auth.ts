@@ -4,14 +4,14 @@ import { SignJWT, jwtVerify } from "jose";
 import { getDb } from "./db";
 
 export type Role = "admin" | "accounting" | "sales";
-export type Perm = "dashboard" | "customers" | "quotes" | "invoices" | "payments" | "discount" | "settings" | "users" | "audit" | "export" | "archive";
+export type Perm = "dashboard" | "customers" | "quotes" | "invoices" | "payments" | "discount" | "settings" | "users" | "audit" | "export" | "archive" | "vat";
 
 export interface SessionUser { id: number; email: string; name: string; role: Role }
 
-const ALL: Perm[] = ["dashboard", "customers", "quotes", "invoices", "payments", "discount", "settings", "users", "audit", "export", "archive"];
+const ALL: Perm[] = ["dashboard", "customers", "quotes", "invoices", "payments", "discount", "settings", "users", "audit", "export", "archive", "vat"];
 const MATRIX: Record<Role, Perm[]> = {
   admin: ALL,
-  accounting: ["dashboard", "customers", "quotes", "invoices", "payments", "discount", "export", "archive"],
+  accounting: ["dashboard", "customers", "quotes", "invoices", "payments", "discount", "export", "archive", "vat"],
   sales: ["customers", "quotes", "archive"],
 };
 export const can = (role: Role, p: Perm) => MATRIX[role].includes(p);

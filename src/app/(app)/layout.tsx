@@ -10,6 +10,7 @@ const ALL: (NavItem & { perm: Perm })[] = [
   { href: "/quotes", label: "Devis", icon: "quotes", perm: "quotes" },
   { href: "/invoices", label: "Factures", icon: "invoices", perm: "invoices" },
   { href: "/payments", label: "Paiements", icon: "payments", perm: "payments" },
+  { href: "/vat", label: "Déclaration TVA", icon: "vat", perm: "vat" },
   { href: "/archive", label: "Archives", icon: "archive", perm: "archive" },
   { href: "/audit", label: "Journal d'audit", icon: "audit", perm: "audit" },
   { href: "/settings", label: "Paramètres", icon: "settings", perm: "settings" },

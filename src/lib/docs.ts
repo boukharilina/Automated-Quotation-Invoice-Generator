@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getDb, type Q } from "./db";
 import { AppError } from "./api";
 import { can, type SessionUser } from "./auth";
-import { computeTotals, fromM, toM, lineTotal } from "./money";
+import { computeTotals, fromM, toM, lineTotal, STAMP_DUTY } from "./money";
 import { audit, nextNumber, refreshStatuses, today } from "./util";
 import { getSettings } from "./settings";
 
@@ -52,7 +52,7 @@ export async function createDoc(kind: Kind, user: SessionUser, raw: unknown) {
   const input = (kind === "quote" ? quoteSchema : invoiceSchema).parse(raw) as any;
   guardDiscount(user, input);
   const s = await getSettings();
-  const totals = computeTotals(input.items, input.discount, input.extra_charges, s.vat_rate);
+  const totals = computeTotals(input.items, input.discount, input.extra_charges, s.vat_rate, STAMP_DUTY);
   const t = T[kind];
   const db = await getDb();
   return db.tx(async (q) => {
@@ -64,9 +64,9 @@ export async function createDoc(kind: Kind, user: SessionUser, raw: unknown) {
       ? { valid_until: input.valid_until } : { due_date: input.due_date, payment_method: input.payment_method };
     const extraCols = Object.keys(cols);
     const { rows } = await q.query<{ id: number }>(
-      `INSERT INTO ${t.table}(number,customer_id,status,issue_date,notes,conditions,subtotal_ht,discount,extra_charges,total_ht,vat_rate,vat_amount,total_ttc,created_by,${extraCols.join(",")})
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,${extraCols.map((_, i) => `$${15 + i}`).join(",")}) RETURNING id`,
-      [number, input.customer_id, input.status, input.issue_date, input.notes, input.conditions, totals.subtotal_ht, totals.discount, totals.extra_charges, totals.total_ht, totals.vat_rate, totals.vat_amount, totals.total_ttc, user.id, ...Object.values(cols)]);
+      `INSERT INTO ${t.table}(number,customer_id,status,issue_date,notes,conditions,subtotal_ht,discount,extra_charges,total_ht,vat_rate,vat_amount,total_ttc,created_by,stamp_duty,${extraCols.join(",")})
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,${extraCols.map((_, i) => `$${16 + i}`).join(",")}) RETURNING id`,
+      [number, input.customer_id, input.status, input.issue_date, input.notes, input.conditions, totals.subtotal_ht, totals.discount, totals.extra_charges, totals.total_ht, totals.vat_rate, totals.vat_amount, totals.total_ttc, user.id, totals.stamp_duty, ...Object.values(cols)]);
     await writeItems(q, kind, rows[0].id, input.items);
     await audit(q, user, "create", kind, rows[0].id, { number, total_ttc: totals.total_ttc, status: input.status });
     return { id: rows[0].id, number };
@@ -83,12 +83,12 @@ export async function updateDoc(kind: Kind, user: SessionUser, id: number, raw: 
     if (!cur) throw new AppError("Document introuvable.", 404);
     if (cur.status !== "draft") throw new AppError("Seuls les brouillons sont modifiables.", 409);
     guardDiscount(user, input, cur);
-    const totals = computeTotals(input.items, input.discount, input.extra_charges, s.vat_rate);
-    const common = [input.customer_id, input.status, input.issue_date, input.notes, input.conditions, totals.subtotal_ht, totals.discount, totals.extra_charges, totals.total_ht, totals.vat_rate, totals.vat_amount, totals.total_ttc];
+    const totals = computeTotals(input.items, input.discount, input.extra_charges, s.vat_rate, STAMP_DUTY);
+    const common = [input.customer_id, input.status, input.issue_date, input.notes, input.conditions, totals.subtotal_ht, totals.discount, totals.extra_charges, totals.total_ht, totals.vat_rate, totals.vat_amount, totals.total_ttc, totals.stamp_duty];
     if (kind === "quote")
-      await q.query(`UPDATE quotes SET customer_id=$1,status=$2,issue_date=$3,notes=$4,conditions=$5,subtotal_ht=$6,discount=$7,extra_charges=$8,total_ht=$9,vat_rate=$10,vat_amount=$11,total_ttc=$12,valid_until=$13,updated_at=now() WHERE id=$14`, [...common, input.valid_until, id]);
+      await q.query(`UPDATE quotes SET customer_id=$1,status=$2,issue_date=$3,notes=$4,conditions=$5,subtotal_ht=$6,discount=$7,extra_charges=$8,total_ht=$9,vat_rate=$10,vat_amount=$11,total_ttc=$12,stamp_duty=$13,valid_until=$14,updated_at=now() WHERE id=$15`, [...common, input.valid_until, id]);
     else
-      await q.query(`UPDATE invoices SET customer_id=$1,status=$2,issue_date=$3,notes=$4,conditions=$5,subtotal_ht=$6,discount=$7,extra_charges=$8,total_ht=$9,vat_rate=$10,vat_amount=$11,total_ttc=$12,due_date=$13,payment_method=$14,updated_at=now() WHERE id=$15`, [...common, input.due_date, input.payment_method, id]);
+      await q.query(`UPDATE invoices SET customer_id=$1,status=$2,issue_date=$3,notes=$4,conditions=$5,subtotal_ht=$6,discount=$7,extra_charges=$8,total_ht=$9,vat_rate=$10,vat_amount=$11,total_ttc=$12,stamp_duty=$13,due_date=$14,payment_method=$15,updated_at=now() WHERE id=$16`, [...common, input.due_date, input.payment_method, id]);
     await writeItems(q, kind, id, input.items);
     await audit(q, user, "update", kind, id, { number: cur.number, before: { total_ttc: cur.total_ttc }, after: { total_ttc: totals.total_ttc, status: input.status } });
     return { id, number: cur.number };
@@ -128,16 +128,18 @@ export async function convertQuote(user: SessionUser, id: number) {
     const issue = today();
     const number = await nextNumber(q, "FAC", Number(issue.slice(0, 4)));
     const due = new Date(issue + "T12:00:00Z"); due.setUTCDate(due.getUTCDate() + s.invoice_due_days);
+    // Un devis antérieur au timbre fiscal le reçoit au moment de la facturation.
+    const total = fromM(toM(quote.total_ttc) - toM(quote.stamp_duty) + toM(STAMP_DUTY));
     const inv = (await q.query<{ id: number }>(
-      `INSERT INTO invoices(number,customer_id,quote_id,status,issue_date,due_date,notes,conditions,subtotal_ht,discount,extra_charges,total_ht,vat_rate,vat_amount,total_ttc,created_by)
-       VALUES($1,$2,$3,'issued',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id`,
-      [number, quote.customer_id, id, issue, due.toISOString().slice(0, 10), quote.notes, s.invoice_conditions, quote.subtotal_ht, quote.discount, quote.extra_charges, quote.total_ht, quote.vat_rate, quote.vat_amount, quote.total_ttc, user.id])).rows[0];
+      `INSERT INTO invoices(number,customer_id,quote_id,status,issue_date,due_date,notes,conditions,subtotal_ht,discount,extra_charges,total_ht,vat_rate,vat_amount,total_ttc,created_by,stamp_duty)
+       VALUES($1,$2,$3,'issued',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+      [number, quote.customer_id, id, issue, due.toISOString().slice(0, 10), quote.notes, s.invoice_conditions, quote.subtotal_ht, quote.discount, quote.extra_charges, quote.total_ht, quote.vat_rate, quote.vat_amount, total, user.id, STAMP_DUTY])).rows[0];
     for (const it of items)
       await q.query("INSERT INTO invoice_items(invoice_id,position,service_id,description,quantity,unit_price,line_total) VALUES($1,$2,$3,$4,$5,$6,$7)",
         [inv.id, it.position, it.service_id, it.description, it.quantity, it.unit_price, it.line_total]);
     await q.query("UPDATE quotes SET status='converted', updated_at=now() WHERE id=$1", [id]);
-    await audit(q, user, "convert", "quote", id, { quote: quote.number, invoice: number, total_ttc: quote.total_ttc });
-    await audit(q, user, "create", "invoice", inv.id, { number, from_quote: quote.number, total_ttc: quote.total_ttc, status: "issued" });
+    await audit(q, user, "convert", "quote", id, { quote: quote.number, invoice: number, total_ttc: total });
+    await audit(q, user, "create", "invoice", inv.id, { number, from_quote: quote.number, total_ttc: total, status: "issued" });
     return { id: inv.id, number };
   });
 }

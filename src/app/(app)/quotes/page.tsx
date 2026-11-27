@@ -1,21 +1,21 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Download, FileSpreadsheet, Plus } from "lucide-react";
 import { requirePage } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { searchQuotes } from "@/lib/reports";
 import { fmt } from "@/lib/money";
-import { fmtDate, QUOTE_STATUS, refreshStatuses } from "@/lib/util";
+import { fmtDate, QUOTE_STATUS } from "@/lib/util";
 import { A, Badge, PageHeader, Right, Table } from "@/components/ui";
 
 export default async function Quotes({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
   await requirePage("quotes");
   const { q = "", status = "" } = await searchParams;
-  const db = await getDb(); await refreshStatuses(db);
-  const rows = (await db.query<any>(
-    `SELECT d.id,d.number,d.status,d.issue_date,d.valid_until,d.total_ttc,c.full_name FROM quotes d JOIN customers c ON c.id=d.customer_id
-     WHERE ($1='' OR d.number ILIKE $2 OR c.full_name ILIKE $2) AND ($3='' OR d.status=$3) ORDER BY d.id DESC LIMIT 300`, [q, `%${q}%`, status])).rows;
+  const rows = (await searchQuotes(q, status)).slice(0, 300);
+  const qs = new URLSearchParams({ q, status }).toString();
   return (
     <>
       <PageHeader title="Devis" subtitle={`${rows.length} résultat(s)`}>
+        <a href={`/api/quotes/export?format=xlsx&${qs}`} className="btn-ghost"><FileSpreadsheet size={16} /> Excel</a>
+        <a href={`/api/quotes/export?format=pdf&${qs}`} className="btn-ghost"><Download size={16} /> PDF</a>
         <Link href="/quotes/new" className="btn-accent"><Plus size={16} /> Nouveau devis</Link>
       </PageHeader>
       <form className="mb-4 flex flex-wrap gap-2">
@@ -26,7 +26,7 @@ export default async function Quotes({ searchParams }: { searchParams: Promise<{
       <Table head={["N°", "Client", "Date", "Validité", "Statut", { t: "Total TTC", right: true }]} empty="Aucun devis. Créez le premier !">
         {rows.map((r) => (
           <tr key={r.id} className="hover:bg-slate-50">
-            <td className="td"><A href={`/quotes/${r.id}`}>{r.number}</A></td><td className="td">{r.full_name}</td>
+            <td className="td"><A href={`/quotes/${r.id}`}>{r.number}</A></td><td className="td">{r.customer_name}</td>
             <td className="td">{fmtDate(r.issue_date)}</td><td className="td">{fmtDate(r.valid_until)}</td>
             <td className="td"><Badge kind="quote" status={r.status} /></td><Right>{fmt(r.total_ttc)}</Right>
           </tr>

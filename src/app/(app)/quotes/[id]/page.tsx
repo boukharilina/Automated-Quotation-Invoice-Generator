@@ -8,6 +8,7 @@ import { fmtDate } from "@/lib/util";
 import { A, Badge, PageHeader } from "@/components/ui";
 import { QuoteActions } from "@/components/Actions";
 import { DocBody } from "@/components/DocBody";
+import { EmailButton, PrintPdfButton } from "@/components/DocTools";
 
 export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requirePage("quotes");
@@ -18,6 +19,8 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       <PageHeader title={d.number} subtitle={<>Client : <A href={`/customers/${d.customer_id}`}>{d.customer_name}</A> · <Badge kind="quote" status={d.status} /></>}>
         {d.status === "draft" && <Link href={`/quotes/${d.id}/edit`} className="btn-ghost"><Pencil size={16} /> Modifier</Link>}
         <a href={`/api/quotes/${d.id}/pdf`} target="_blank" className="btn-ghost"><Download size={16} /> PDF</a>
+        <PrintPdfButton url={`/api/quotes/${d.id}/pdf`} />
+        {!["draft", "cancelled"].includes(d.status) && <EmailButton url={`/api/quotes/${d.id}/email`} email={d.customer_email} />}
         <QuoteActions id={d.id} status={d.status} canConvert={can(user.role, "invoices")} invoice={d.invoice} />
       </PageHeader>
       {d.invoice && <p className="mb-4 rounded-lg bg-violet-50 p-3 text-sm text-violet-800">Converti en facture <A href={`/invoices/${d.invoice.id}`}>{d.invoice.number}</A>.</p>}

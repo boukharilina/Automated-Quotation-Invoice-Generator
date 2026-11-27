@@ -3,10 +3,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import clsx from "clsx";
-import { Archive, BarChart3, CreditCard, FileText, History, Menu, LogOut, Receipt, Settings, Users, X } from "lucide-react";
+import { Archive, BarChart3, CreditCard, FileText, History, Menu, LogOut, Percent, Receipt, Settings, Users, X } from "lucide-react";
 import { api } from "./client";
 
-const ICONS: Record<string, any> = { dashboard: BarChart3, customers: Users, quotes: FileText, invoices: Receipt, payments: CreditCard, archive: Archive, audit: History, settings: Settings };
+const ICONS: Record<string, any> = { dashboard: BarChart3, customers: Users, quotes: FileText, invoices: Receipt, payments: CreditCard, archive: Archive, vat: Percent, audit: History, settings: Settings };
 
 export interface NavItem { href: string; label: string; icon: string }
 
